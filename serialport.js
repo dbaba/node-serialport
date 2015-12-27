@@ -581,21 +581,28 @@ function SerialPortFactory(_spfOptions) {
         }
       }
 
-      async.map(files, function (file, callback) {
-        var fileName = path.join(dirName, file);
-        exec('/sbin/udevadm info --query=property -p $(/sbin/udevadm info -q path -n ' + fileName + ')', function (err, stdout) {
-          if (err) {
-            if (callback) {
-              callback(err);
-            } else {
-              factory.emit('error', err);
+      exec('which udevadm', function(err, udevadmPath) {
+        if (err) {
+          udevadmPath = '/sbin/udevadm';
+        } else {
+          udevadmPath = udevadmPath.trim();
+        }
+        async.map(files, function (file, callback) {
+          var fileName = path.join(dirName, file);
+          exec(udevadmPath + ' info --query=property -p $(' + udevadmPath + ' info -q path -n ' + fileName + ')', function (err, stdout) {
+            if (err) {
+              if (callback) {
+                callback(err);
+              } else {
+                factory.emit('error', err);
+              }
+              return;
             }
-            return;
-          }
 
-          udev_parser(stdout, callback);
-        });
-      }, callback);
+            udev_parser(stdout, callback);
+          });
+        }, callback);
+      });
     });
   }
 
